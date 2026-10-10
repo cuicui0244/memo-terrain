@@ -26,6 +26,9 @@ input:focus{outline:2px solid var(--accent);border-color:transparent}
 button,.btn{width:100%;font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:14px;cursor:pointer;text-decoration:none;display:block}
 .link{background:none;color:var(--accent);font-weight:400;padding:6px;width:auto;text-decoration:underline}
 .err{color:var(--err);font-size:.9rem}
+.ais{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%}
+.ais button{width:auto;flex:1 1 30%;font-weight:500;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px}
+.ais button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -40,25 +43,44 @@ button,.btn{width:100%;font:inherit;font-weight:600;background:var(--accent);col
 
   <div id="setup" hidden style="display:flex;flex-direction:column;gap:12px;width:100%">
     <p><b>Première ouverture</b></p>
-    <p class="muted">Colle le lien de ton appli Memo Terrain sur Claude (celui qui commence par https://claude.ai/…, reçu par mail). Il reste enregistré uniquement sur ce téléphone.</p>
+    <p class="muted">Quelle IA utilises-tu ?</p>
+    <div class="ais" id="ais" role="group" aria-label="Choix de l'IA"></div>
+    <p class="muted" id="hint"></p>
     <input type="url" id="url" placeholder="https://claude.ai/artifact/…" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <p class="err" id="err" hidden>Ce lien ne commence pas par https://claude.ai/ .</p>
+    <p class="err" id="err" hidden></p>
     <button type="button" id="save">Enregistrer et ouvrir</button>
-    <a class="link" href="simple.html">Version sans Claude</a>
+    <a class="link" href="simple.html">Version sans IA</a>
   </div>
 </div>
 <script>
-const KEY="mt.claudeUrl";
-const get=()=>{try{return localStorage.getItem(KEY)||""}catch(e){return ""}};
-const set=v=>{try{localStorage.setItem(KEY,v)}catch(e){}};
+const KEY="mt.claudeUrl",KEY_AI="mt.ai";
+const AIS=[
+  {id:"claude",name:"Claude",hosts:["claude.ai"],ex:"https://claude.ai/artifact/…"},
+  {id:"chatgpt",name:"ChatGPT",hosts:["chatgpt.com","chat.openai.com"],ex:"https://chatgpt.com/…"},
+  {id:"gemini",name:"Gemini",hosts:["gemini.google.com","g.co"],ex:"https://gemini.google.com/…"},
+  {id:"mistral",name:"Le Chat",hosts:["chat.mistral.ai"],ex:"https://chat.mistral.ai/…"},
+  {id:"copilot",name:"Copilot",hosts:["copilot.microsoft.com","copilot.cloud.microsoft","m365.cloud.microsoft"],ex:"https://copilot.microsoft.com/…"},
+  {id:"autre",name:"Autre",hosts:null,ex:"https://…"}
+];
+const getK=k=>{try{return localStorage.getItem(k)||""}catch(e){return ""}};
+const setK=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const get=()=>getK(KEY),set=v=>setK(KEY,v);
 const $=id=>document.getElementById(id);
-function showSetup(){$("go").hidden=true;$("setup").hidden=false;$("url").value=get();}
+let ai=AIS.find(a=>a.id===getK(KEY_AI))||AIS[0];
+function pick(a){ai=a;
+  [...$("ais").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.id===a.id));
+  $("url").placeholder=a.ex;$("err").hidden=true;
+  $("hint").textContent=a.hosts?"Colle le lien de ton appli Memo Terrain sur "+a.name+" (celui qui commence par https://"+a.hosts[0]+"/…). Il reste enregistré uniquement sur ce téléphone.":"Colle le lien de ton appli Memo Terrain (il doit commencer par https://). Il reste enregistré uniquement sur ce téléphone.";}
+AIS.forEach(a=>{const b=document.createElement("button");b.type="button";b.textContent=a.name;b.dataset.id=a.id;b.onclick=()=>pick(a);$("ais").appendChild(b);});
+function ok(u,a){let h;try{const x=new URL(u);if(x.protocol!=="https:")return false;h=x.hostname}catch(e){return false}
+  return !a.hosts||a.hosts.some(d=>h===d||h.endsWith("."+d));}
+function showSetup(){$("go").hidden=true;$("setup").hidden=false;$("url").value=get();pick(ai);}
 function launch(u){$("setup").hidden=true;$("go").hidden=false;$("goBtn").href=u;location.replace(u);}
 $("change").onclick=showSetup;
 $("save").onclick=()=>{
-  const u=$("url").value.trim();
-  if(!/^https:\/\/claude\.ai\//.test(u)){$("err").hidden=false;return;}
-  $("err").hidden=true;set(u);launch(u);
+  const u=$("url").value.replace(/\s+/g,"");
+  if(!ok(u,ai)){$("err").textContent=ai.hosts?"Ce lien ne commence pas par https://"+ai.hosts[0]+"/ . Vérifie l'IA choisie au-dessus.":"Ce lien doit commencer par https:// .";$("err").hidden=false;return;}
+  $("err").hidden=true;set(u);setK(KEY_AI,ai.id);launch(u);
 };
 const saved=get();
 if(saved&&!location.search.includes("reglage"))launch(saved);else showSetup();
