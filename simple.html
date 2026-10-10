@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1079af">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Memo Terrain">
+<meta name="robots" content="noindex,nofollow">
+<title>Memo Terrain</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Mise en page : une colonne, capture en haut, note, destinataires, barre d'envoi fixe en bas */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#1b2430; --muted:#5d6a78; --line:#d5dbe2;
+  --accent:#1079af; --accent-ink:#ffffff; --green:#628e41; --signal:#e8a317; --ok:#2e7d4f; --err:#b3361f;
+  --chip:#e3e9f0; --teams:#4b53bc; --teams-ink:#ffffff; --rec:#c62f2f;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#12171d; --surface:#1b222b; --ink:#e7ecf1; --muted:#97a4b2; --line:#2c3642;
+  --accent:#4fa8dc; --accent-ink:#0b1823; --green:#8bbd62; --signal:#f0b43a; --ok:#58b884; --err:#ec7a63;
+  --chip:#26303b; --teams:#8b91e8; --teams-ink:#10122a; --rec:#ef6b6b; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.45;padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:12px 130px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header img{width:84px;height:84px;border-radius:18px;border:1px solid var(--line);background:#fff}
+.iconbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.9rem;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;text-decoration:none}
+.iconbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.hdr-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.label{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.82rem;color:var(--muted)}
+.capture{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cap{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 6px;cursor:pointer;font-family:var(--display);font-weight:700;font-size:1rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.cap svg{width:30px;height:30px;stroke:var(--accent);fill:none;stroke-width:1.8}
+.cap input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.cap.recording{border-color:var(--rec);color:var(--rec)}
+.cap.recording svg{stroke:var(--rec)}
+.cap:focus-within,.cap:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+textarea,input[type=text],input[type=email],input[type=url]{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+textarea{min-height:130px;resize:vertical}
+textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.field{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:7px 13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip.urgent[aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#1b1300}
+.chip.me{cursor:default}
+.chip.add{background:transparent;border-style:dashed;border-color:var(--accent);color:var(--accent);font-weight:600}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.atts{display:flex;flex-wrap:wrap;gap:10px}
+.att{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center;padding:4px}
+.att img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.att .x{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;font-size:14px;line-height:24px;padding:0}
+.attinfo{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;margin:0}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tbtn{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;background:var(--teams);color:var(--teams-ink);border-radius:10px;padding:12px 8px;font-family:var(--display);font-weight:700;letter-spacing:.04em;text-transform:uppercase;min-width:0}
+.tbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar-in{max-width:560px;margin:0 auto;display:flex;gap:10px}
+.send{flex:1;font-family:var(--display);font-weight:700;font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:14px;cursor:pointer}
+.clear{font:inherit;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer}
+.status{font-size:.9rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);white-space:pre-line}
+.status.ok{border-color:var(--ok);color:var(--ok)}
+.status.err{border-color:var(--err);color:var(--err)}
+/* feuille d'envoi + réglages */
+.sheet{position:fixed;inset:0;background:var(--bg);overflow-y:auto;z-index:10;padding-top:env(safe-area-inset-top,0px)}
+.sheet .wrap{padding-bottom:40px}
+.sheet h2{font-family:var(--display);font-size:1.4rem;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px}
+.item+.item{border-top:1px solid var(--line)}
+.item b{display:block}
+.item small{color:var(--muted);overflow-wrap:anywhere}
+.item>div{min-width:0}
+.go{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.go.done{background:var(--chip);color:var(--ok)}
+.del{font:inherit;background:transparent;color:var(--err);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.addrow{display:grid;grid-template-columns:1fr;gap:8px}
+.primary{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:12px;cursor:pointer}
+.secondary{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer}
+.empty{padding:14px;color:var(--muted);font-size:.9rem}
+.privacy{font-size:.82rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:12px}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="main">
+  <header>
+    <img src="apple-touch-icon.png" alt="Memo Terrain">
+    <div class="hdr-actions">
+      <button class="iconbtn" type="button" id="btnSettings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Réglages</button>
+      <a class="iconbtn" id="btnFull" href="#" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>Version IA</a>
+    </div>
+  </header>
+
+  <div class="capture">
+    <label class="cap"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Photo
+      <input id="inPhoto" type="file" accept="image/*" capture="environment" aria-label="Prendre une photo"></label>
+    <button class="cap" type="button" id="btnRec"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="recLabel">Vocal</span></button>
+    <label class="cap"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h5"/></svg>Galerie
+      <input id="inFile" type="file" accept="image/*,audio/*,application/pdf" multiple aria-label="Ajouter depuis la galerie"></label>
+  </div>
+
+  <div class="atts" id="atts" hidden></div>
+  <p class="attinfo" id="attinfo" hidden></p>
+
+  <div class="field">
+    <label class="label" for="note">Note</label>
+    <textarea id="note" placeholder="Touche le micro du clavier pour dicter ta note…"></textarea>
+  </div>
+
+  <div class="field">
+    <label class="label" for="subject">Objet (auto si vide)</label>
+    <input type="text" id="subject" placeholder="Tiré de la 1re ligne de la note">
+  </div>
+
+  <div class="field">
+    <span class="label">Catégorie</span>
+    <div class="chips" id="cats">
+      <button class="chip" type="button" aria-pressed="false">Prospection</button>
+      <button class="chip" type="button" aria-pressed="false">Devis</button>
+      <button class="chip" type="button" aria-pressed="false">Chantier</button>
+      <button class="chip" type="button" aria-pressed="false">Technicien</button>
+      <button class="chip" type="button" aria-pressed="false">À rappeler</button>
+      <button class="chip" type="button" aria-pressed="false">Idée</button>
+      <button class="chip urgent" type="button" id="urgent" aria-pressed="false">Urgent</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label" for="site">Site / client (facultatif)</label>
+    <input type="text" id="site" placeholder="Ex. : Résidence Les Tilleuls — appareil n°…">
+  </div>
+
+  <div class="field">
+    <span class="label">Envoyer à</span>
+    <div class="chips" id="dest"></div>
+  </div>
+
+  <div class="field" id="teamsBox" hidden>
+    <span class="label">Teams (texte seul)</span>
+    <div class="teams" id="teams"></div>
+  </div>
+
+  <div id="status" class="status" hidden role="status"></div>
+</div>
+
+<div class="bar" id="bar"><div class="bar-in">
+  <button class="clear" type="button" id="btnClear">Effacer</button>
+  <button class="send" type="button" id="btnSend">Envoyer</button>
+</div></div>
+
+<!-- Feuille d'envoi -->
+<div class="sheet" id="sendSheet" hidden>
+  <div class="wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h2>Envoi</h2><button class="secondary" type="button" id="closeSend">Terminé</button>
+    </div>
+    <p class="hint" id="sendHint"></p>
+    <div class="list" id="sendList"></div>
+    <p class="hint">Avec des pièces jointes, le téléphone ouvre le menu de partage : choisis Outlook ou Gmail. L'adresse du destinataire est copiée, colle-la dans « À ».</p>
+  </div>
+</div>
+
+<!-- Réglages -->
+<div class="sheet" id="settings" hidden>
+  <div class="wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h2>Réglages</h2><button class="secondary" type="button" id="closeSettings">Fermer</button>
+    </div>
+
+    <div class="field">
+      <label class="label" for="myEmail">Mon adresse mail</label>
+      <input type="email" id="myEmail" placeholder="prenom.nom@entreprise.com" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <span class="label">Autres personnes</span>
+      <div class="list" id="contactList"></div>
+    </div>
+
+    <div class="field">
+      <span class="label">Ajouter une personne</span>
+      <div class="addrow">
+        <input type="text" id="newName" placeholder="Prénom (pour « Salut … »)">
+        <input type="email" id="newEmail" placeholder="adresse mail">
+        <button class="primary" type="button" id="btnAdd">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="fullUrl">Lien de la version IA (facultatif)</label>
+      <input type="url" id="fullUrl" placeholder="https://claude.ai/artifact/…">
+      <p class="hint">Ajoute un bouton « Version IA » en haut pour le résumé IA et le rappel de 8h.</p>
+    </div>
+
+    <p class="privacy">Ces réglages sont enregistrés uniquement sur ce téléphone. Rien n'est envoyé sur internet : tes notes, photos et vocaux partent seulement quand tu les envoies avec ton appli mail.</p>
+    <button class="secondary" type="button" id="btnWipe">Tout effacer de ce téléphone</button>
+    <p class="status err" id="wipeConfirm" hidden>Appuie encore une fois pour confirmer l'effacement des réglages.</p>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const BATCH=15*1024*1024;
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let cfg=store.get("mt.cfg",{me:"",contacts:[],fullUrl:""});
+let atts=[];
+
+/* ---------- réglages ---------- */
+function saveCfg(){store.set("mt.cfg",cfg);renderDest();renderTeams();renderFull();}
+function renderContacts(){
+  const l=$("contactList");l.innerHTML="";
+  if(!cfg.contacts.length){const d=document.createElement("div");d.className="empty";d.textContent="Personne pour l'instant. Ajoute ton assistant ou un collègue ci-dessous.";l.appendChild(d);return;}
+  cfg.contacts.forEach((c,i)=>{
+    const it=document.createElement("div");it.className="item";
+    const t=document.createElement("div");const b=document.createElement("b");b.textContent=c.name;const s=document.createElement("small");s.textContent=c.email;t.append(b,s);
+    const del=document.createElement("button");del.className="del";del.type="button";del.textContent="Supprimer";
+    del.onclick=()=>{cfg.contacts.splice(i,1);saveCfg();renderContacts();};
+    it.append(t,del);l.appendChild(it);
+  });
+}
+const validEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+$("btnAdd").onclick=()=>{
+  const name=$("newName").value.trim(),email=$("newEmail").value.trim();
+  if(!name||!validEmail(email)){$("newEmail").focus();$("newEmail").setCustomValidity("Prénom et adresse valide requis");$("newEmail").reportValidity();return;}
+  $("newEmail").setCustomValidity("");
+  cfg.contacts.push({id:Date.now().toString(36),name,email,on:false});
+  $("newName").value="";$("newEmail").value="";saveCfg();renderContacts();
+};
+$("myEmail").addEventListener("change",()=>{cfg.me=$("myEmail").value.trim();saveCfg();});
+$("fullUrl").addEventListener("change",()=>{cfg.fullUrl=$("fullUrl").value.trim();saveCfg();});
+function openSettings(){$("myEmail").value=cfg.me;$("fullUrl").value=cfg.fullUrl||"";renderContacts();$("settings").hidden=false;$("bar").hidden=true;$("wipeConfirm").hidden=true;}
+$("btnSettings").onclick=openSettings;
+$("closeSettings").onclick=()=>{cfg.me=$("myEmail").value.trim();cfg.fullUrl=$("fullUrl").value.trim();saveCfg();$("settings").hidden=true;$("bar").hidden=false;};
+let wipeArmed=false;
+$("btnWipe").onclick=()=>{
+  if(!wipeArmed){wipeArmed=true;$("wipeConfirm").hidden=false;setTimeout(()=>{wipeArmed=false;$("wipeConfirm").hidden=true;},5000);return;}
+  ["mt.cfg","mt.draft"].forEach(store.del);cfg={me:"",contacts:[],fullUrl:""};wipeArmed=false;openSettings();saveCfg();
+};
+function renderFull(){const a=$("btnFull");a.hidden=!cfg.fullUrl;if(cfg.fullUrl)a.href=cfg.fullUrl;}
+
+/* ---------- destinataires + Teams ---------- */
+function renderDest(){
+  const d=$("dest");d.innerHTML="";
+  const me=document.createElement("span");me.className="chip me";me.setAttribute("aria-pressed","true");me.textContent=cfg.me?"Moi":"Moi (à régler)";d.appendChild(me);
+  if(!cfg.me)me.onclick=openSettings;
+  cfg.contacts.forEach(c=>{
+    const b=document.createElement("button");b.className="chip";b.type="button";b.textContent=c.name;b.setAttribute("aria-pressed",c.on?"true":"false");
+    b.onclick=()=>{c.on=!c.on;store.set("mt.cfg",cfg);b.setAttribute("aria-pressed",c.on?"true":"false");};
+    d.appendChild(b);
+  });
+  const add=document.createElement("button");add.className="chip add";add.type="button";add.textContent="+ Ajouter / supprimer";
+  add.onclick=()=>{openSettings();setTimeout(()=>{$("newName").scrollIntoView({block:"center"});$("newName").focus();},50);};
+  d.appendChild(add);
+}
+function teamsText(greet){const g=gather();
+  let t=(g.urgent?"URGENT – ":"")+g.base+(g.note&&g.note!==g.base?"\n"+g.note:"")+(g.site?"\nSite : "+g.site:"");
+  t=t.slice(0,1200);return greet?"Salut "+greet+",\n"+t+"\nMerci":t;}
+function teamsHref(email,greet){return "https://teams.microsoft.com/l/chat/0/0?users="+encodeURIComponent(email)+"&message="+encodeURIComponent(teamsText(greet));}
+function renderTeams(){
+  const box=$("teams");box.innerHTML="";const people=[];
+  if(cfg.me)people.push({name:"Moi",email:cfg.me,greet:null});
+  cfg.contacts.forEach(c=>people.push({name:c.name,email:c.email,greet:c.name}));
+  $("teamsBox").hidden=!people.length;
+  people.forEach(p=>{const a=document.createElement("a");a.className="tbtn";a.target="_blank";a.rel="noopener";a.href=teamsHref(p.email,p.greet);
+    a.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+    const s=document.createElement("span");s.textContent="Teams "+p.name;a.appendChild(s);
+    a.addEventListener("pointerdown",()=>{a.href=teamsHref(p.email,p.greet);});
+    box.appendChild(a);});
+}
+
+/* ---------- note ---------- */
+$("note").value=store.get("mt.draft","");
+$("note").addEventListener("input",()=>store.set("mt.draft",$("note").value));
+document.querySelectorAll("#cats .chip").forEach(c=>c.addEventListener("click",()=>c.setAttribute("aria-pressed",c.getAttribute("aria-pressed")==="true"?"false":"true")));
+function gather(){
+  const note=$("note").value.trim(),site=$("site").value.trim();
+  const cats=[...document.querySelectorAll("#cats .chip:not(.urgent)[aria-pressed=true]")].map(c=>c.textContent);
+  const urgent=$("urgent").getAttribute("aria-pressed")==="true";
+  const firstAtt=atts[0]?(atts[0].type.startsWith("audio/")?"Message vocal":"Photos"):"Note";
+  const base=($("subject").value.trim()||(note.split("\n")[0]||firstAtt)).slice(0,70);
+  const now=new Date();const when=now.toLocaleDateString("fr-FR")+" "+now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  const infos=[];if(site)infos.push("Site / client : "+site);if(cats.length)infos.push("Catégorie : "+cats.join(", "));infos.push("Date : "+when);
+  return {note,site,cats,urgent,base,infos};
+}
+
+/* ---------- pièces jointes ---------- */
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());}
+function mo(n){return (n/1048576).toFixed(1).replace(".",",")+" Mo";}
+async function shrink(file){try{const bmp=await createImageBitmap(file);const r=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");c.width=Math.round(bmp.width*r);c.height=Math.round(bmp.height*r);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  return (await new Promise(res=>c.toBlob(res,"image/jpeg",0.82)))||file;}catch(e){return file}}
+async function addBlob(blob,type,name){
+  if(blob.size>BATCH){show("err","« "+name+" » fait "+mo(blob.size)+" : trop lourd pour un mail.");return;}
+  atts.push({file:new File([blob],name,{type}),type,name,size:blob.size,preview:type.startsWith("image/")?URL.createObjectURL(blob):null});renderAtts();
+}
+async function addFiles(list){for(const f of list){
+  if((f.type||"").startsWith("image/")){await addBlob(await shrink(f),"image/jpeg","photo-"+stamp()+"-"+(atts.length+1)+".jpg");}
+  else await addBlob(f,f.type||"application/octet-stream",f.name||"fichier");}}
+["inPhoto","inFile"].forEach(id=>$(id).addEventListener("change",e=>{addFiles([...e.target.files]);e.target.value="";}));
+function batches(){const out=[];let cur=[],sz=0;for(const a of atts){if(cur.length&&sz+a.size>BATCH){out.push(cur);cur=[];sz=0;}cur.push(a);sz+=a.size;}if(cur.length)out.push(cur);return out;}
+function renderAtts(){
+  const box=$("atts");box.innerHTML="";box.hidden=!atts.length;
+  atts.forEach((a,i)=>{const d=document.createElement("div");d.className="att";
+    if(a.preview){const im=document.createElement("img");im.src=a.preview;im.alt=a.name;d.appendChild(im);}else d.textContent=a.type.startsWith("audio/")?"Vocal":a.name;
+    const x=document.createElement("button");x.className="x";x.type="button";x.textContent="×";x.setAttribute("aria-label","Retirer "+a.name);
+    x.onclick=()=>{if(a.preview)URL.revokeObjectURL(a.preview);atts.splice(i,1);renderAtts();};d.appendChild(x);box.appendChild(d);});
+  const info=$("attinfo");info.hidden=!atts.length;
+  if(atts.length){const n=batches().length;info.textContent=atts.length+" fichier"+(atts.length>1?"s":"")+" · "+mo(atts.reduce((s,a)=>s+a.size,0))+(n>1?" · partira en "+n+" envois":"");}
+}
+
+/* ---------- enregistrement vocal ---------- */
+let rec=null,chunks=[],recStart=0,recTimer=null;
+$("btnRec").onclick=async()=>{
+  if(rec&&rec.state==="recording"){rec.stop();return;}
+  if(!navigator.mediaDevices||!window.MediaRecorder){show("err","L'enregistrement vocal n'est pas disponible sur ce navigateur. Utilise le micro du clavier pour dicter.");return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=["audio/mp4","audio/webm;codecs=opus","audio/webm"].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||"";
+    rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    rec.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());clearInterval(recTimer);$("btnRec").classList.remove("recording");$("recLabel").textContent="Vocal";
+      const type=(rec.mimeType||"audio/webm").split(";")[0];const ext=type.includes("mp4")?"m4a":"webm";
+      await addBlob(new Blob(chunks,{type}),type,"vocal-"+stamp()+"."+ext);};
+    rec.start();recStart=Date.now();$("btnRec").classList.add("recording");
+    recTimer=setInterval(()=>{const s=Math.floor((Date.now()-recStart)/1000);$("recLabel").textContent="Stop "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0");},500);
+    $("recLabel").textContent="Stop 0:00";
+  }catch(e){show("err","Micro refusé. Autorise le micro pour ce site dans les réglages du téléphone.");}
+};
+
+/* ---------- envoi ---------- */
+function show(kind,msg){const s=$("status");s.hidden=false;s.className="status "+kind;s.textContent=msg;}
+function bodyFor(g,greet,part,n){
+  if(part>0)return (greet?"Salut "+greet+",\n\n":"")+"Suite des pièces jointes ("+(part+1)+"/"+n+") : "+g.base+(greet?"\n\nMerci":"");
+  return (greet?"Salut "+greet+",\n\n":"")+(g.urgent?"URGENT\n\n":"")+(g.note?g.note+"\n\n":"")+g.infos.join("\n")+
+    (atts.length?"\nPièces jointes : "+atts.length+(n>1?" (réparties sur "+n+" envois)":""):"")+(greet?"\n\nMerci":"");
+}
+function subjectFor(g,part,n){return (g.urgent?"[URGENT] ":"")+(g.cats.length?"[Mémo – "+g.cats.join(", ")+"] ":"[Mémo] ")+g.base+(n>1?" ("+(part+1)+"/"+n+")":"");}
+async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
+
+$("btnSend").onclick=()=>{
+  const g=gather();
+  if(!cfg.me){show("err","Indique d'abord ton adresse mail dans Réglages.");openSettings();return;}
+  if(!g.note&&!atts.length){show("err","Ajoute une note, une photo ou un vocal avant d'envoyer.");return;}
+  const people=[{name:"Moi",email:cfg.me,greet:null},...cfg.contacts.filter(c=>c.on).map(c=>({name:c.name,email:c.email,greet:c.name}))];
+  const parts=batches();const n=Math.max(1,parts.length);
+  const list=$("sendList");list.innerHTML="";let done=0,total=people.length*n;
+  people.forEach(p=>{for(let i=0;i<n;i++){
+    const files=(parts[i]||[]).map(a=>a.file);
+    const it=document.createElement("div");it.className="item";
+    const t=document.createElement("div");const b=document.createElement("b");b.textContent=p.name+(n>1?" — envoi "+(i+1)+"/"+n:"");
+    const s=document.createElement("small");s.textContent=p.email+(files.length?" · "+files.length+" fichier(s)":"");t.append(b,s);
+    const go=document.createElement("button");go.className="go";go.type="button";go.textContent=files.length?"Partager":"Ouvrir le mail";
+    go.onclick=async()=>{
+      const subject=subjectFor(g,i,n),body=bodyFor(g,p.greet,i,n);
+      if(files.length){
+        await copy(p.email);
+        if(navigator.canShare&&navigator.canShare({files})){
+          try{await navigator.share({files,title:subject,text:subject+"\n\n"+body});}catch(e){if(e.name==="AbortError")return;show("err","Le partage a échoué : "+e.message);return;}
+        }else{show("err","Ce navigateur ne permet pas de partager des fichiers. Ouvre l'appli depuis l'écran d'accueil (Safari ou Chrome).");return;}
+      }else{
+        location.href="mailto:"+encodeURIComponent(p.email)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+      }
+      if(!go.classList.contains("done")){go.classList.add("done");go.textContent="✓ Fait";done++;}
+      $("sendHint").textContent=done+" / "+total+" ouvert(s).";
+    };
+    it.append(t,go);list.appendChild(it);
+  }});
+  $("sendHint").textContent="Appuie sur chaque ligne pour ouvrir ton appli mail, puis envoie depuis celle-ci.";
+  $("sendSheet").hidden=false;$("bar").hidden=true;
+};
+$("closeSend").onclick=()=>{
+  const anyDone=document.querySelector("#sendList .go.done");
+  $("sendSheet").hidden=true;$("bar").hidden=false;
+  if(anyDone){clearAll();show("ok","Mémo envoyé. La note a été effacée.");}
+};
+function clearAll(){atts.forEach(a=>a.preview&&URL.revokeObjectURL(a.preview));atts=[];renderAtts();
+  $("note").value="";store.set("mt.draft","");$("site").value="";$("subject").value="";
+  document.querySelectorAll("#cats .chip").forEach(c=>c.setAttribute("aria-pressed","false"));}
+$("btnClear").onclick=()=>{clearAll();$("status").hidden=true;};
+
+renderDest();renderTeams();renderFull();
+if(!cfg.me)openSettings();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
