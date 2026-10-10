@@ -52,6 +52,7 @@ textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:0;bord
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .chip.urgent[aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#1b1300}
 .chip.me{cursor:default}
+.chip.add{background:transparent;border-style:dashed;border-color:var(--accent);color:var(--accent);font-weight:600}
 button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .atts{display:flex;flex-wrap:wrap;gap:10px}
 .att{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center;padding:4px}
@@ -256,6 +257,9 @@ function renderDest(){
     b.onclick=()=>{c.on=!c.on;store.set("mt.cfg",cfg);b.setAttribute("aria-pressed",c.on?"true":"false");};
     d.appendChild(b);
   });
+  const add=document.createElement("button");add.className="chip add";add.type="button";add.textContent="+ Ajouter / supprimer";
+  add.onclick=()=>{openSettings();setTimeout(()=>{$("newName").scrollIntoView({block:"center"});$("newName").focus();},50);};
+  d.appendChild(add);
 }
 function teamsText(greet){const g=gather();
   let t=(g.urgent?"URGENT – ":"")+g.base+(g.note&&g.note!==g.base?"\n"+g.note:"")+(g.site?"\nSite : "+g.site:"");
