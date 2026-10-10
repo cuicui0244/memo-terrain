@@ -26,6 +26,7 @@ input:focus{outline:2px solid var(--accent);border-color:transparent}
 button,.btn{width:100%;font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:14px;cursor:pointer;text-decoration:none;display:block}
 .link{background:none;color:var(--accent);font-weight:400;padding:6px;width:auto;text-decoration:underline}
 .err{color:var(--err);font-size:.9rem}
+.credit{color:var(--muted);font-size:.8rem;letter-spacing:.04em;margin-top:8px}
 .ais{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%}
 .ais button{width:auto;flex:1 1 30%;font-weight:500;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 12px}
 .ais button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -51,6 +52,7 @@ button,.btn{width:100%;font:inherit;font-weight:600;background:var(--accent);col
     <button type="button" id="save">Enregistrer et ouvrir</button>
     <a class="link" href="simple.html">Version sans IA</a>
   </div>
+  <p class="credit">Application créée by <b>Cuicui</b></p>
 </div>
 <script>
 const KEY="mt.claudeUrl",KEY_AI="mt.ai";
